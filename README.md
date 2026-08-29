@@ -26,3 +26,13 @@ The Python handlers in `backend/` are ready to be attached to API Gateway in the
 - `delete_photo.lambda_handler` removes a user's S3 image and its metadata record.
 
 They require `PHOTOS_BUCKET_NAME` and `PHOTO_METADATA_TABLE_NAME` environment variables. The API Gateway routes will be added in Step 6.
+
+## Steps 6 and 7: API Gateway and IAM
+
+Terraform now packages the Lambda handlers, creates the Lambda execution role, and provides only the S3 and DynamoDB permissions the handlers require. The HTTP API exposes these routes:
+
+- `POST /upload-url`
+- `GET /photos?userId=<userId>`
+- `DELETE /photos/{id}?userId=<userId>`
+
+The current API accepts a supplied `userId` for learning purposes. A production gallery must add authentication before trusting that value.
