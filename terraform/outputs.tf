@@ -20,3 +20,8 @@ output "photo_metadata_table_name" {
 output "photo_metadata_table_arn" {
   value = aws_dynamodb_table.photo_metadata.arn
 }
+
+output "api_endpoint" {
+  description = "Base URL for the HTTP API."
+  value       = aws_apigatewayv2_api.photo_gallery.api_endpoint
+}
