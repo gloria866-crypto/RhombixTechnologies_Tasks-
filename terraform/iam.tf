@@ -1,7 +1,7 @@
 # Step 7: least-privilege execution role shared by the photo Lambda functions.
 data "aws_iam_policy_document" "lambda_assume_role" {
   statement {
-    effect = "Allow"
+    effect  = "Allow"
     actions = ["sts:AssumeRole"]
 
     principals {

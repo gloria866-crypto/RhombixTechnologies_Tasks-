@@ -31,10 +31,10 @@ data "archive_file" "photo_lambdas" {
 
 locals {
   lambda_environment = {
-    PHOTOS_BUCKET_NAME          = aws_s3_bucket.photos.bucket
-    PHOTO_METADATA_TABLE_NAME   = aws_dynamodb_table.photo_metadata.name
-    ALLOWED_ORIGIN              = "http://localhost:3000"
-    UPLOAD_URL_EXPIRY_SECONDS   = "900"
+    PHOTOS_BUCKET_NAME        = aws_s3_bucket.photos.bucket
+    PHOTO_METADATA_TABLE_NAME = aws_dynamodb_table.photo_metadata.name
+    ALLOWED_ORIGIN            = "http://localhost:3000"
+    UPLOAD_URL_EXPIRY_SECONDS = "900"
   }
 }
 
