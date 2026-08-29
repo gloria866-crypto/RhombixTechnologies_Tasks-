@@ -1,0 +1,121 @@
+name: Validate and Deploy
+
+on:
+  push:
+    branches: [dev, main]
+    paths:
+      - "terraform/**"
+      - "frontend/**"
+      - "backend/**"
+      - ".github/workflows/deploy.yml"
+  pull_request:
+    paths:
+      - "terraform/**"
+      - "frontend/**"
+      - "backend/**"
+      - ".github/workflows/deploy.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: photo-gallery-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  AWS_REGION: us-east-1
+  TF_STATE_BUCKET: photos-gallery-terraform-state-gloria-2026
+  TF_STATE_KEY: cloud-photo-gallery/terraform.tfstate
+
+jobs:
+  validate:
+    name: Validate application and infrastructure
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v4
+        with:
+          terraform_version: 1.14.6
+          terraform_wrapper: false
+
+      - name: Check frontend files
+        run: |
+          test -f frontend/index.html
+          test -f frontend/style.css
+          node --check frontend/app.js
+
+      - name: Check Terraform formatting
+        working-directory: terraform
+        run: terraform fmt -check -recursive
+
+      - name: Validate Terraform configuration
+        working-directory: terraform
+        run: |
+          terraform init -backend=false -input=false
+          terraform validate -no-color
+
+  deploy:
+    name: Deploy AWS infrastructure and frontend
+    needs: validate
+    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
+    runs-on: ubuntu-latest
+    environment: production
+    permissions:
+      contents: read
+      id-token: write
+    concurrency:
+      group: photo-gallery-production
+      cancel-in-progress: false
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Configure AWS credentials using OIDC
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Create Terraform state bucket when needed
+        shell: bash
+        run: |
+          if aws s3api head-bucket --bucket "$TF_STATE_BUCKET" 2>/dev/null; then
+            echo "Terraform state bucket already exists."
+          elif [ "$AWS_REGION" = "us-east-1" ]; then
+            aws s3api create-bucket --bucket "$TF_STATE_BUCKET" --region "$AWS_REGION"
+          else
+            aws s3api create-bucket --bucket "$TF_STATE_BUCKET" --region "$AWS_REGION" \
+              --create-bucket-configuration LocationConstraint="$AWS_REGION"
+          fi
+          aws s3api put-bucket-versioning --bucket "$TF_STATE_BUCKET" \
+            --versioning-configuration Status=Enabled
+          aws s3api put-bucket-encryption --bucket "$TF_STATE_BUCKET" \
+            --server-side-encryption-configuration '{"Rules":[{"ApplyServerSideEncryptionByDefault":{"SSEAlgorithm":"AES256"}}]}'
+          aws s3api put-public-access-block --bucket "$TF_STATE_BUCKET" \
+            --public-access-block-configuration BlockPublicAcls=true,IgnorePublicAcls=true,BlockPublicPolicy=true,RestrictPublicBuckets=true
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v4
+        with:
+          terraform_version: 1.14.6
+          terraform_wrapper: false
+
+      - name: Apply Terraform configuration
+        working-directory: terraform
+        run: |
+          terraform init -input=false -reconfigure \
+            -backend-config="bucket=$TF_STATE_BUCKET" \
+            -backend-config="key=$TF_STATE_KEY" \
+            -backend-config="region=$AWS_REGION" \
+            -backend-config="use_lockfile=true"
+          terraform apply -auto-approve -input=false
+
+      - name: Deploy frontend assets
+        working-directory: terraform
+        run: |
+          FRONTEND_BUCKET_NAME="$(terraform output -raw frontend_bucket_name)"
+          aws s3 sync ../frontend/ "s3://$FRONTEND_BUCKET_NAME/" --delete
