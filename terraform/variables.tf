@@ -15,3 +15,9 @@ variable "photos_bucket_name" {
   type        = string
   default     = "photos-gallery-s3-bucket-gloria-2026"
 }
+
+variable "photo_metadata_table_name" {
+  description = "DynamoDB table that stores metadata for uploaded photos."
+  type        = string
+  default     = "PhotoMetadata"
+}

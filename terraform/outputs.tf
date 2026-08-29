@@ -11,3 +11,12 @@ output "photos_bucket_name" {
 output "photos_bucket_arn" {
   value = aws_s3_bucket.photos.arn
 }
+
+output "photo_metadata_table_name" {
+  description = "Use this table name in the Lambda functions added in Step 5."
+  value       = aws_dynamodb_table.photo_metadata.name
+}
+
+output "photo_metadata_table_arn" {
+  value = aws_dynamodb_table.photo_metadata.arn
+}
