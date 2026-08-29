@@ -21,3 +21,9 @@ variable "photo_metadata_table_name" {
   type        = string
   default     = "PhotoMetadata"
 }
+
+variable "alert_email" {
+  description = "Email address that will receive CloudWatch alarm notifications via SNS."
+  type        = string
+  default     = "yaaappaih2@gmail.com"
+}

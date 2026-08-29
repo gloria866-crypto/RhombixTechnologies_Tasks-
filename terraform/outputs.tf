@@ -25,3 +25,13 @@ output "api_endpoint" {
   description = "Base URL for the HTTP API."
   value       = aws_apigatewayv2_api.photo_gallery.api_endpoint
 }
+
+output "cloudfront_domain_name" {
+  description = "Domain name for the CloudFront distribution in front of the frontend bucket."
+  value       = aws_cloudfront_distribution.frontend.domain_name
+}
+
+output "sns_alert_topic_arn" {
+  description = "ARN of the SNS topic used for monitoring alerts."
+  value       = aws_sns_topic.photo_gallery_alerts.arn
+}
