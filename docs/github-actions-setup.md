@@ -9,15 +9,15 @@
 
 ## CD: deploy the frontend
 
-The deployment job uses temporary GitHub OIDC credentials; do not add long-lived AWS keys to this repository.
+The deployment job uses GitHub Actions secrets for AWS credentials. Never store credentials in the repository itself.
 
 Before enabling a deployment, configure these repository settings:
 
-1. Create an AWS IAM OIDC provider for `token.actions.githubusercontent.com` and an IAM role that trusts this repository's `main` branch. We will add this role to Terraform during the IAM step.
-2. Give that role least-privilege permissions for the Terraform state bucket, the frontend bucket, and every AWS resource Terraform currently manages. The role will need additional scoped permissions as Lambda, API Gateway, CloudFront, IAM, and monitoring resources are added.
-3. In **Settings → Secrets and variables → Actions**, add:
-   - Secret: `AWS_ROLE_TO_ASSUME` — the IAM role ARN.
-4. The state bucket defaults to `photos-gallery-terraform-state-gloria-2026`. If that globally unique name is unavailable, change `TF_STATE_BUCKET` in `deploy.yml` before merging to `main`.
-5. In **Settings → Environments**, create `production` and configure a required reviewer if you want approval before deployment.
+1. Create a dedicated IAM user with least-privilege permissions for the Terraform state bucket, the frontend bucket, and every AWS resource Terraform currently manages. Add only the scoped permissions needed as Lambda, API Gateway, CloudFront, IAM, and monitoring resources are added.
+2. In **Settings → Secrets and variables → Actions**, add:
+   - Secret: `AWS_ACCESS_KEY_ID`
+   - Secret: `AWS_SECRET_ACCESS_KEY`
+3. The state bucket defaults to `photos-gallery-terraform-state-gloria-2026`. If that globally unique name is unavailable, change `TF_STATE_BUCKET` in `deploy.yml` before merging to `main`.
+4. In **Settings → Environments**, create `production` and configure a required reviewer if you want approval before deployment.
 
 CloudFront cache invalidation will be added with CloudFront in Step 8.
